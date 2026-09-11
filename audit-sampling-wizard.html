@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audit Sampling Wizard</title>
+<style>
+/* ─── TOKENS ─────────────────────────────────────── */
+:root {
+  --navy:    #1b2a4a;
+  --navy2:   #253660;
+  --slate:   #4a5e82;
+  --ice:     #eef2f9;
+  --ice2:    #dce5f5;
+  --white:   #ffffff;
+  --offwhite:#f5f6f8;
+  --border:  #d4d9e6;
+  --border2: #b8c0d6;
+  --text:    #0f1826;
+  --text2:   #4a5568;
+  --text3:   #8592a8;
+  --green:   #166534;
+  --green-bg:#dcfce7;
+  --red:     #991b1b;
+  --red-bg:  #fee2e2;
+  --amber:   #92400e;
+  --amber-bg:#fef3c7;
+  --r:8px; --r-sm:5px;
+  --shadow: 0 1px 4px rgba(27,42,74,.08), 0 1px 2px rgba(27,42,74,.05);
+  --shadow-lg: 0 4px 16px rgba(27,42,74,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  background:var(--offwhite);color:var(--text);font-size:14px;line-height:1.6;min-height:100vh}
+
+/* ─── HEADER ─────────────────────────────────────── */
+.header{background:var(--navy);color:#fff;padding:0 32px;display:flex;align-items:center;
+  justify-content:space-between;height:52px;position:sticky;top:0;z-index:100}
+.header-brand{font-size:14px;font-weight:600;letter-spacing:-.01em}
+.header-brand span{opacity:.5;font-weight:400;margin-left:8px;font-size:12px}
+.header-step{font-size:12px;opacity:.6}
+
+/* ─── PROGRESS ───────────────────────────────────── */
+.progress-bar{background:var(--navy2);height:3px}
+.progress-fill{height:100%;background:#5b8af5;transition:width .4s ease}
+
+/* ─── LAYOUT ─────────────────────────────────────── */
+.layout{display:flex;max-width:1100px;margin:0 auto;padding:28px 24px;gap:28px}
+.sidebar{width:200px;flex-shrink:0}
+.content{flex:1;min-width:0}
+
+/* ─── STEP NAV ───────────────────────────────────── */
+.step-nav{background:var(--white);border:1px solid var(--border);border-radius:var(--r);
+  overflow:hidden;box-shadow:var(--shadow)}
+.step-nav-item{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;
+  border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+.step-nav-item:last-child{border-bottom:none}
+.step-nav-item:hover{background:var(--ice)}
+.step-nav-item.active{background:var(--ice2)}
+.step-num{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:2px;
+  background:var(--border);color:var(--text2);transition:all .2s}
+.step-nav-item.active .step-num{background:var(--navy);color:#fff}
+.step-nav-item.done .step-num{background:var(--green);color:#fff}
+.step-nav-item.done .step-num::after{content:"✓"}
+.step-nav-item.done .step-label{color:var(--text2)}
+.step-nav-item:not(.done):not(.active) .step-num{color:var(--text3)}
+.step-label{font-size:12px;font-weight:500;color:var(--text);line-height:1.35}
+.step-sub{font-size:11px;color:var(--text3);margin-top:1px}
+
+/* ─── CARD ───────────────────────────────────────── */
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);
+  padding:24px;box-shadow:var(--shadow);margin-bottom:16px}
+.card-title{font-size:16px;font-weight:600;margin-bottom:4px}
+.card-sub{font-size:13px;color:var(--text2);margin-bottom:20px}
+.page{display:none}.page.active{display:block}
+
+/* ─── FORM ───────────────────────────────────────── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:12px;font-weight:600;color:var(--text2)}
+.field input,.field select,.field textarea{
+  padding:9px 11px;border:1px solid var(--border2);border-radius:var(--r-sm);
+  font-size:13px;background:var(--white);color:var(--text);outline:none;
+  transition:border-color .15s,box-shadow .15s;font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{
+  border-color:var(--navy);box-shadow:0 0 0 3px rgba(27,42,74,.1)}
+.field input.err,.field select.err{border-color:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.1)}
+.field .help{font-size:11px;color:var(--text3)}
+.field .err-msg{font-size:11px;color:#dc2626;font-weight:500}
+
+/* ─── UPLOAD ZONE ────────────────────────────────── */
+.upload-zone{border:2px dashed var(--border2);border-radius:var(--r);padding:32px;
+  text-align:center;cursor:pointer;transition:all .2s;background:var(--ice)}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--navy);background:var(--ice2)}
+.upload-icon{font-size:32px;margin-bottom:8px}
+.upload-title{font-size:14px;font-weight:600;color:var(--navy);margin-bottom:4px}
+.upload-sub{font-size:12px;color:var(--text3)}
+#file-input{display:none}
+
+/* ─── TABLE PREVIEW ──────────────────────────────── */
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r);
+  box-shadow:var(--shadow)}
+.data-table{width:100%;border-collapse:collapse;font-size:12px;min-width:500px}
+.data-table th{background:var(--navy);color:#fff;padding:8px 12px;text-align:left;
+  font-weight:500;font-size:11px;white-space:nowrap;position:sticky;top:0}
+.data-table td{padding:7px 12px;border-bottom:1px solid var(--border);
+  white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+.data-table tr:hover td{background:var(--ice)}
+.data-table tr.row-err td{background:#fff5f5}
+.data-table tr.row-warn td{background:#fffbeb}
+.data-table .cell-err{color:#dc2626;font-weight:600}
+.data-table .cell-warn{color:#d97706;font-weight:600}
+
+/* ─── ERROR PANEL ────────────────────────────────── */
+.err-panel{border-radius:var(--r);border:1px solid;padding:14px 16px;margin-bottom:14px;font-size:13px}
+.err-panel.error{background:var(--red-bg);border-color:#fca5a5;color:var(--red)}
+.err-panel.warning{background:var(--amber-bg);border-color:#fcd34d;color:var(--amber)}
+.err-panel.success{background:var(--green-bg);border-color:#86efac;color:var(--green)}
+.err-panel-title{font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.err-list{display:flex;flex-direction:column;gap:3px}
+.err-list li{font-size:12px;list-style:none;padding-left:14px;position:relative}
+.err-list li::before{content:"•";position:absolute;left:0}
+
+/* ─── BADGE / PILL ───────────────────────────────── */
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-navy{background:var(--ice2);color:var(--navy)}
+.badge-green{background:var(--green-bg);color:var(--green)}
+.badge-red{background:var(--red-bg);color:var(--red)}
+.badge-amber{background:var(--amber-bg);color:var(--amber)}
+.badge-slate{background:var(--ice);color:var(--slate)}
+
+/* ─── BUTTONS ────────────────────────────────────── */
+.btn-row{display:flex;gap:10px;margin-top:20px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 20px;border-radius:var(--r-sm);
+  font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border2);
+  background:var(--white);color:var(--text);transition:all .12s}
+.btn:hover{background:var(--ice);border-color:var(--border)}
+.btn-primary{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn-primary:hover{background:var(--navy2);opacity:1}
+.btn-danger{background:#dc2626;color:#fff;border-color:#dc2626}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* ─── METRICS ────────────────────────────────────── */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px}
+.metric{background:var(--white);border:1px solid var(--border);border-radius:var(--r-sm);
+  padding:14px 16px;box-shadow:var(--shadow)}
+.metric-label{font-size:11px;color:var(--text3);font-weight:500;margin-bottom:4px}
+.metric-value{font-size:20px;font-weight:700;color:var(--text);line-height:1.2}
+.metric-sub{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* ─── SEGMENT PICKER ─────────────────────────────── */
+.seg-group{display:flex;gap:0;border:1px solid var(--border2);border-radius:var(--r-sm);
+  overflow:hidden;margin-bottom:14px;width:fit-content}
+.seg-btn{padding:8px 20px;font-size:13px;font-weight:500;cursor:pointer;border:none;
+  background:var(--white);color:var(--text2);transition:all .12s}
+.seg-btn.on{background:var(--navy);color:#fff}
+.seg-btn:not(:last-child){border-right:1px solid var(--border2)}
+
+/* ─── ASERSI / CRA CARDS ─────────────────────────── */
+.check-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.check-card{border:1px solid var(--border2);border-radius:var(--r-sm);padding:12px 14px;
+  cursor:pointer;transition:all .15s;display:flex;align-items:flex-start;gap:10px}
+.check-card:hover{border-color:var(--navy);background:var(--ice)}
+.check-card.selected{border-color:var(--navy);background:var(--ice2);box-shadow:0 0 0 2px rgba(27,42,74,.15)}
+.check-card input[type=checkbox]{margin-top:2px;accent-color:var(--navy);flex-shrink:0}
+.check-card-body{flex:1}
+.check-title{font-size:13px;font-weight:600;color:var(--text)}
+.check-desc{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* ─── CRA SLIDER ─────────────────────────────────── */
+.cra-row{display:grid;grid-template-columns:110px 1fr 60px;gap:12px;align-items:center;margin-bottom:10px}
+.cra-label{font-size:12px;font-weight:600;color:var(--text2)}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;
+  background:linear-gradient(to right,var(--navy) 0%,var(--navy) var(--pct,50%),var(--border2) var(--pct,50%));
+  outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;
+  border-radius:50%;background:var(--navy);cursor:pointer;border:2px solid #fff;
+  box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.cra-value{font-size:12px;font-weight:700;color:var(--navy);text-align:right}
+
+/* ─── OUTPUT TABLE ───────────────────────────────── */
+.out-table{width:100%;border-collapse:collapse;font-size:12px}
+.out-table th{background:var(--navy);color:#fff;padding:9px 12px;text-align:left;
+  font-size:11px;font-weight:600;white-space:nowrap}
+.out-table td{padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.out-table tr:hover td{background:var(--ice)}
+.out-table tr.key-row td{background:#fffbeb;font-weight:600}
+.out-table tr.key-row td:first-child::before{content:"⭐ ";font-size:10px}
+
+/* ─── DIVIDER ────────────────────────────────────── */
+.divider{height:1px;background:var(--border);margin:16px 0}
+.section-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;
+  letter-spacing:.06em;margin-bottom:8px}
+
+/* ─── SPINNER ────────────────────────────────────── */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);
+  border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ─── RESPONSIVE ─────────────────────────────────── */
+@media(max-width:720px){
+  .layout{flex-direction:column;padding:16px}
+  .sidebar{width:100%}
+  .grid2,.grid3{grid-template-columns:1fr}
+  .check-grid{grid-template-columns:1fr}
+}
+
+/* ─── TOOLTIP ────────────────────────────────────── */
+.tooltip{position:relative;display:inline-flex}
+.tooltip-icon{width:16px;height:16px;border-radius:50%;background:var(--border2);
+  color:var(--text2);font-size:10px;font-weight:700;display:inline-flex;align-items:center;
+  justify-content:center;cursor:help;margin-left:4px;flex-shrink:0}
+.tooltip-box{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;
+  transform:translateX(-50%);background:var(--navy);color:#fff;font-size:11px;padding:7px 10px;
+  border-radius:var(--r-sm);width:220px;text-align:center;z-index:200;line-height:1.4;
+  box-shadow:var(--shadow-lg)}
+.tooltip:hover .tooltip-box{display:block}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand">Audit Sampling Wizard <span>Internal Audit Tool</span></div>
+  <div class="header-step" id="header-step">Langkah 1 dari 8</div>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:12.5%"></div></div>
+
+<div class="layout">
+
+<!-- ─── SIDEBAR ─── -->
+<div class="sidebar">
+  <div class="step-nav" id="step-nav">
+    <div class="step-nav-item active" data-step="1">
+      <div class="step-num">1</div>
+      <div><div class="step-label">Input Data</div><div class="step-sub">Upload CSV/Excel</div></div>
+    </div>
+    <div class="step-nav-item" data-step="2">
+      <div class="step-num">2</div>
+      <div><div class="step-label">Posisi Neraca</div><div class="step-sub">BS atau P&L</div></div>
+    </div>
+    <div class="step-nav-item" data-step="3">
+      <div class="step-num">3</div>
+      <div><div class="step-label">Akun</div><div class="step-sub">Jenis akun</div></div>
+    </div>
+    <div class="step-nav-item" data-step="4">
+      <div class="step-num">4</div>
+      <div><div class="step-label">Asersi</div><div class="step-sub">Existence / Completeness</div></div>
+    </div>
+    <div class="step-nav-item" data-step="5">
+      <div class="step-num">5</div>
+      <div><div class="step-label">CRA</div><div class="step-sub">Control & Inherent risk</div></div>
+    </div>
+    <div class="step-nav-item" data-step="6">
+      <div class="step-num">6</div>
+      <div><div class="step-label">Populasi & Kolom</div><div class="step-sub">Amount & unit</div></div>
+    </div>
+    <div class="step-nav-item" data-step="7">
+      <div class="step-num">7</div>
+      <div><div class="step-label">Sampling Setup</div><div class="step-sub">Teknik & key items</div></div>
+    </div>
+    <div class="step-nav-item" data-step="8">
+      <div class="step-num">8</div>
+      <div><div class="step-label">Output Sampel</div><div class="step-sub">Hasil & export</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── CONTENT ─── -->
+<div class="content">
+
+<!-- STEP 1: Upload -->
+<div id="page-1" class="page active">
+  <div class="card">
+    <div class="card-title">Upload data populasi</div>
+    <div class="card-sub">Upload file CSV. Baris pertama harus berisi nama kolom (header).</div>
+    <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()"
+      ondragover="e=>e.preventDefault()" ondrop="handleDrop(event)">
+      <div class="upload-icon">📂</div>
+      <div class="upload-title">Klik untuk upload, atau drag & drop file ke sini</div>
+      <div class="upload-sub">Format yang didukung: CSV (delimiter koma atau titik koma)</div>
+    </div>
+    <input type="file" id="file-input" accept=".csv,.txt" onchange="handleFile(event)">
+    <div style="margin-top:12px;font-size:12px;color:var(--text3)">
+      Belum punya file? 
+      <a href="#" onclick="downloadTemplate();return false" style="color:var(--navy);font-weight:600">Download template CSV</a>
+    </div>
+  </div>
+  <div id="step1-result"></div>
+</div>
+
+<!-- STEP 2: BS/PL -->
+<div id="page-2" class="page">
+  <div class="card">
+    <div class="card-title">Posisi di laporan keuangan</div>
+    <div class="card-sub">Tentukan di mana akun ini berada dalam laporan keuangan.</div>
+    <div class="seg-group">
+      <button class="seg-btn on" id="seg-bs" onclick="setStmt('BS')">Balance Sheet (Neraca)</button>
+      <button class="seg-btn" id="seg-pl" onclick="setStmt('PL')">Profit & Loss (L/R)</button>
+    </div>
+    <div id="stmt-desc" class="err-panel success" style="margin-bottom:0"></div>
+  </div>
+  <div class="btn-row">
+    <button class="btn" onclick="gotoStep(1)">← Kembali</button>
+    <button class="btn btn-primary" onclick="gotoStep(3)">Lanjut →</button>
+  </div>
+</div>
+
+<!-- STEP 3: Akun -->
+<div id="page-3" class="page">
+  <div class="card">
+    <div class="card-title">Jenis akun</div>
+    <div class="card-sub">Pilih atau ketik jenis akun yang sedang diaudit.</div>
+    <div class="field">
+      <label>Nama akun</label>
+      <input type="text" id="account-name" placeholder="cth: Persediaan Barang Jadi" oninput="updateAccountSuggestions()">
+    </div>
+    <div id="account-suggestions" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px"></div>
+    <div class="divider"></div>
+    <div class="field" style="margin-top:4px">
+      <label>Kode akun (opsional)</label>
+      <input type="text" id="account-code" placeholder="cth: 1300, 5200">
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn" onclick="gotoStep(2)">← Kembali</button>
+    <button class="btn btn-primary" onclick="validateStep3()">Lanjut →</button>
+  </div>
+</div>
+
+<!-- STEP 4: Asersi -->
+<div id="page-4" class="page">
+  <div class="card">
+    <div class="card-title">Asersi audit</div>
+    <div class="card-sub">Pilih satu atau lebih asersi yang relevan dengan tujuan pengujian. Pilihan mempengaruhi arah sampling.</div>
+    <div class="check-grid" id="asersi-grid"></div>
+    <div id="asersi-impact" class="err-panel" style="display:none"></div>
+  </div>
+  <div class="btn-row">
+    <button class="btn" onclick="gotoStep(3)">← Kembali</button>
+    <button class="btn btn-primary" onclick="validateStep4()">Lanjut →</button>
+  </div>
+</div>
+
+<!-- STEP 5: CRA -->
+<div id="page-5" class="page">
+  <div class="card">
+    <div class="card-title">Control Risk Assessment (CRA)</div>
+    <div class="card-sub">Tetapkan tingkat risiko pengendalian dan risiko inheren. Kombinasi keduanya menentukan Detection Risk dan ukuran sampel.</div>
+    <div class="section-label" style="margin-top:4px">Inherent Risk (IR)</div>
+    <div class="cra-row">
+      <div class="cra-label">Tingkat IR</div>
+      <input type="range" id="ir-slider" min="1" max="3" step="1" value="2" oninput="updateCRA()">
+      <div class="cra-value" id="ir-val">Sedang</div>
+    </div>
+    <div id="ir-desc" style="font-size:12px;color:var(--text3);margin-bottom:16px;padding:8px 10px;background:var(--offwhite);border-radius:var(--r-sm)"></div>
+    <div class="divider"></div>
+    <div class="section-label">Control Risk (CR)</div>
+    <div class="cra-row">
+      <div class="cra-label">Tingkat CR</div>
+      <input type="range" id="cr-slider" min="1" max="3" step="1" value="2" oninput="updateCRA()">
+      <div class="cra-value" id="cr-val">Sedang</div>
+    </div>
+    <div id="cr-desc" style="font-size:12px;color:var(--text3);margin-bottom:16px;padding:8px 10px;background:var(--offwhite);border-radius:var(--r-sm)"></div>
+    <div class="divider"></div>
+    <div id="cra-result" class="card" style="border:none;padding:0;box-shadow:none"></div>
+  </div>
+  <div class="btn-row">
+    <button class="btn" onclick="gotoStep(4)">← Kembali</button>
+    <button class="btn btn-primary" onclick="gotoStep(6)">Lanjut →</button>
+  </div>
+</div>
+
+<!-- STEP 6: Populasi & Kolom -->
+<div id="page-6" class="page">
+  <div class="card">
+    <div class="card-title">Populasi & kolom data</div>
+    <div class="card-sub">Pilih kolom yang akan digunakan sebagai identifikasi item dan nilai moneter.</div>
+    <div class="grid2">
+      <div class="field">
+        <label>Kolom sampling unit <span class="tooltip"><div class="tooltip-icon">?</div><div class="tooltip-box">Kolom yang menjadi identitas unik setiap item: nomor faktur, kode voucher, dll.</div></span></label>
+        <select id="col-unit"></select>
+      </div>
+      <div class="field">
+        <label>Kolom nilai moneter <span class="tooltip"><div class="tooltip-icon">?</div><div class="tooltip-box">Kolom yang berisi nilai rupiah untuk MUS / TOD.</div></span></label>
+        <select id="col-monetary"></select>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="section-label">Populasi amount</div>
+    <div class="metrics" id="pop-metrics"></div>
+    <div id="pop-errors"></div>
+    <div class="divider"></div>
+    <div class="section-label">Jenis sampel</div>
+    <div class="seg-group">
+      <button class="seg-btn on" id="seg-quanti" onclick="setSampleType('quanti')">Kuantitatif (statistik)</button>
+      <button class="seg-btn" id="seg-quali" onclick="setSampleType('quali')">Kualitatif (judgmental)</button>
+    </div>
+    <div id="sample-type-desc" class="err-panel success" style="margin-bottom:0"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Expected misstatement</div>
+    <div class="card-sub">Perkiraan salah saji berdasarkan pengalaman audit sebelumnya atau walkthrough.</div>
+    <div class="grid2">
+      <div class="field">
+        <label>Expected misstatement (Rp)</label>
+        <input type="number" id="exp-miss" value="0" min="0" oninput="updateExpMiss()">
+      </div>
+      <div class="field">
+        <label>Tolerable misstatement (Rp)</label>
+        <input type="number" id="tol-miss" value="0" min="0" oninput="updateExpMiss()">
+        <span class="help">Biasanya = Performance Materiality (75% dari overall materiality)</span>
+      </div>
+    </div>
+    <div id="exp-miss-result" style="margin-top:8px"></div>
+  </div>
+  <div class="btn-row">
+    <button class="btn" onclick="gotoStep(5)">← Kembali</button>
+    <button class="btn btn-primary" onclick="validateStep6()">Lanjut →</button>
+  </div>
+</div>
+
+<!-- STEP 7: Sampling Setup -->
+<div id="page-7" class="page">
+  <div class="card">
+    <div class="card-title">Teknik sampling</div>
+    <div class="card-sub">Pilih metode berdasarkan jenis populasi dan tujuan asersi.</div>
+    <div class="check-grid" id="technique-grid"></div>
+    <div id="technique-desc" class="err-panel" style="display:none;margin-top:0"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Key items</div>
+    <div class="card-sub">Item yang diuji 100% di luar sampling statistik (nilai besar, transaksi berisiko tinggi, pihak terkait).</div>
+    <div class="grid2">
+      <div class="field">
+        <label>Batas nilai key item (Rp)</label>
+        <input type="number" id="key-threshold" value="0" min="0" oninput="updateKeyItems()">
+        <span class="help">Semua item ≥ nilai ini akan diuji 100%</span>
+      </div>
+      <div class="field">
+        <label>Kolom tambahan filter key item (opsional)</label>
+        <select id="key-col-filter"><option value="">— Tidak ada —</option></select>
+      </div>
+    </div>
+    <div id="key-item-result" style="margin-top:10px"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Parameter sampling</div>
+    <div class="grid2">
+      <div class="field">
+        <label>Tingkat kepercayaan</label>
+        <select id="conf-level" onchange="calcSampleSize()">
+          <option value="1.645">90%</option>
+          <option value="1.96" selected>95%</option>
+          <option value="2.576">99%</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Seed acak (opsional)</label>
+        <input type="number" id="rng-seed" placeholder="Untuk reprodusibilitas">
+      </div>
+    </div>
+    <div class="metrics" id="size-metrics" style="margin-top:12px"></div>
+  </div>
+  <div class="btn-row">
+    <button class="btn" onclick="gotoStep(6)">← Kembali</button>
+    <button class="btn btn-primary" onclick="generateSample()">Generate sampel →</button>
+  </div>
+</div>
+
+<!-- STEP 8: Output -->
+<div id="page-8" class="page">
+  <div class="card">
+    <div class="card-title">Output sampel audit</div>
+    <div class="card-sub" id="out-subtitle"></div>
+    <div class="metrics" id="out-metrics"></div>
+    <div class="err-panel" id="out-summary" style="margin-bottom:14px"></div>
+    <div class="btn-row" style="margin-top:0;margin-bottom:16px">
+      <button class="btn btn-primary" onclick="exportOutput('csv')">⬇ Export CSV</button>
+      <button class="btn" onclick="exportOutput('all')">⬇ Export Semua Kolom</button>
+      <button class="btn" onclick="gotoStep(7)">← Ubah parameter</button>
+    </div>
+    <div class="table-wrap">
+      <table class="out-table" id="out-table"></table>
+    </div>
+  </div>
+</div>
+
+</div><!-- /content -->
+</div><!-- /layout -->
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+const S = {
+  currentStep: 1,
+  rawData: [],       // parsed rows (array of objects)
+  headers: [],       // column names
+  stmt: 'BS',        // BS or PL
+  accountName: '',
+  accountCode: '',
+  asersi: [],
+  ir: 2, cr: 2,
+  colUnit: '',
+  colMonetary: '',
+  sampleType: 'quanti',
+  expMiss: 0,
+  tolMiss: 0,
+  technique: '',
+  keyThreshold: 0,
+  confLevel: 1.96,
+  seed: null,
+  keyItems: [],
+  sampleItems: [],
+  dataErrors: [],
+  dataWarnings: [],
+};
+
+// ═══════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════
+function gotoStep(n) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + n).classList.add('active');
+  document.querySelectorAll('.step-nav-item').forEach(el => {
+    const s = +el.dataset.step;
+    el.classList.remove('active');
+    if (s < n) { el.classList.add('done'); el.querySelector('.step-num').textContent = ''; }
+    else { el.classList.remove('done'); el.querySelector('.step-num').textContent = s; }
+    if (s === n) el.classList.add('active');
+  });
+  S.currentStep = n;
+  document.getElementById('header-step').textContent = `Langkah ${n} dari 8`;
+  document.getElementById('progress-fill').style.width = (n / 8 * 100) + '%';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (n === 2) renderStep2();
+  if (n === 3) renderStep3();
+  if (n === 4) renderStep4();
+  if (n === 5) updateCRA();
+  if (n === 6) renderStep6();
+  if (n === 7) renderStep7();
+}
+
+// ═══════════════════════════════════════════════════════════
+// STEP 1 — FILE UPLOAD
+// ═══════════════════════════════════════════════════════════
+function downloadTemplate() {
+  const csv = `No Faktur,Tanggal,Deskripsi,Nilai (Rp),Vendor,Departemen
+INV-001,2024-01-15,Pembelian Bahan Baku,15000000,PT Maju Jaya,Produksi
+INV-002,2024-01-18,Jasa Konsultasi,8500000,CV Konsultan Prima,Keuangan
+INV-003,2024-01-22,Pembelian ATK,750000,Toko Sumber Jaya,Umum
+INV-004,2024-02-01,Pembelian Mesin,185000000,PT Teknik Mandiri,Produksi
+INV-005,2024-02-10,Utilitas Listrik,12000000,PLN,Umum`;
+  dlFile(csv, 'template-populasi-audit.csv', 'text/csv');
+}
+
+const uploadZone = document.getElementById('upload-zone');
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag'));
+uploadZone.addEventListener('drop', handleDrop);
+
+function handleDrop(e) {
+  e.preventDefault();
+  uploadZone.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f) parseFile(f);
+}
+function handleFile(e) { if (e.target.files[0]) parseFile(e.target.files[0]); }
+
+function parseFile(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const text = ev.target.result;
+    const delim = text.includes(';') && !text.includes(',') ? ';' : ',';
+    const lines = text.trim().split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) { showUploadErr('File harus memiliki minimal 1 baris header dan 1 baris data.'); return; }
+    const headers = parseCSVLine(lines[0], delim);
+    if (headers.length < 2) { showUploadErr('Kolom tidak terdeteksi. Pastikan menggunakan delimiter koma (,) atau titik koma (;).'); return; }
+    const rows = lines.slice(1).map(l => {
+      const vals = parseCSVLine(l, delim);
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = (vals[i] || '').trim());
+      return obj;
+    }).filter(r => Object.values(r).some(v => v !== ''));
+    if (rows.length === 0) { showUploadErr('Tidak ada data ditemukan setelah header.'); return; }
+    S.rawData = rows; S.headers = headers;
+    validateData();
+    renderUploadResult(file.name);
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function parseCSVLine(line, delim) {
+  const result = []; let cur = ''; let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { inQ = !inQ; }
+    else if (c === delim && !inQ) { result.push(cur); cur = ''; }
+    else cur += c;
+  }
+  result.push(cur);
+  return result.map(v => v.replace(/^"|"$/g, '').trim());
+}
+
+function validateData() {
+  S.dataErrors = []; S.dataWarnings = [];
+  // Duplicate detection across all columns
+  const seen = {};
+  S.rawData.forEach((row, i) => {
+    const key = JSON.stringify(Object.values(row));
+    if (seen[key] !== undefined) {
+      S.dataErrors.push({ row: i + 2, type: 'duplicate', msg: `Baris ${i+2} adalah duplikat dari baris ${seen[key]+2}` });
+    } else seen[key] = i;
+  });
+  // Per-column checks for numeric columns
+  S.headers.forEach(h => {
+    const vals = S.rawData.map(r => r[h]);
+    const numericCount = vals.filter(v => v !== '' && !isNaN(parseNum(v)) && parseNum(v) !== null).length;
+    if (numericCount > vals.length * 0.5) { // likely numeric column
+      vals.forEach((v, i) => {
+        if (v === '' || v === null || v === undefined) {
+          S.dataWarnings.push({ row: i+2, col: h, type: 'blank', msg: `Baris ${i+2}, kolom "${h}": nilai kosong (blank)` });
+        } else {
+          const n = parseNum(v);
+          if (n === null) {
+            S.dataWarnings.push({ row: i+2, col: h, type: 'invalid', msg: `Baris ${i+2}, kolom "${h}": format nilai tidak dikenali ("${v}")` });
+          } else if (n === 0) {
+            S.dataWarnings.push({ row: i+2, col: h, type: 'zero', msg: `Baris ${i+2}, kolom "${h}": nilai 0` });
+          } else if (n < 0) {
+            S.dataErrors.push({ row: i+2, col: h, type: 'negative', msg: `Baris ${i+2}, kolom "${h}": nilai negatif (${fmtRp(n)})` });
+          }
+        }
+      });
+    }
+  });
+}
+
+function parseNum(v) {
+  if (v === '' || v === null || v === undefined) return null;
+  const s = String(v).replace(/[Rp\s.]/g, '').replace(',', '.');
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
+function renderUploadResult(fname) {
+  const el = document.getElementById('step1-result');
+  const errCount = S.dataErrors.length;
+  const warnCount = S.dataWarnings.length;
+  let html = '';
+
+  if (errCount > 0) {
+    html += `<div class="err-panel error"><div class="err-panel-title">🚫 ${errCount} Error data ditemukan — harus diperbaiki</div>
+      <ul class="err-list">${S.dataErrors.slice(0,8).map(e=>`<li>${e.msg}</li>`).join('')}
+      ${S.dataErrors.length>8?`<li>...dan ${S.dataErrors.length-8} error lainnya</li>`:''}</ul></div>`;
+  }
+  if (warnCount > 0) {
+    html += `<div class="err-panel warning"><div class="err-panel-title">⚠️ ${warnCount} Peringatan data — tinjau sebelum melanjutkan</div>
+      <ul class="err-list">${S.dataWarnings.slice(0,8).map(w=>`<li>${w.msg}</li>`).join('')}
+      ${S.dataWarnings.length>8?`<li>...dan ${S.dataWarnings.length-8} peringatan lainnya</li>`:''}</ul></div>`;
+  }
+  if (errCount === 0 && warnCount === 0) {
+    html += `<div class="err-panel success"><div class="err-panel-title">✅ Data bersih — tidak ada error</div></div>`;
+  }
+
+  html += `<div class="card">
+    <div class="card-title">📄 ${fname}</div>
+    <div class="metrics" style="margin-bottom:14px">
+      <div class="metric"><div class="metric-label">Total baris</div><div class="metric-value">${S.rawData.length.toLocaleString('id-ID')}</div></div>
+      <div class="metric"><div class="metric-label">Kolom</div><div class="metric-value">${S.headers.length}</div></div>
+      <div class="metric"><div class="metric-label">Error</div><div class="metric-value" style="color:${errCount?'#dc2626':'var(--green)'}">${errCount}</div></div>
+      <div class="metric"><div class="metric-label">Peringatan</div><div class="metric-value" style="color:${warnCount?'#d97706':'var(--green)'}">${warnCount}</div></div>
+    </div>
+    <div class="section-label" style="margin-bottom:6px">Preview data (5 baris pertama)</div>
+    <div class="table-wrap" style="max-height:220px;overflow-y:auto">
+      <table class="data-table"><thead><tr>${S.headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead>
+      <tbody>${S.rawData.slice(0,5).map((r,ri)=>{
+        const isErrRow = S.dataErrors.some(e=>e.row===ri+2);
+        const isWarnRow = S.dataWarnings.some(w=>w.row===ri+2);
+        return `<tr class="${isErrRow?'row-err':isWarnRow?'row-warn':''}">${S.headers.map(h=>{
+          const errCell = S.dataErrors.some(e=>e.row===ri+2&&e.col===h);
+          const warnCell = S.dataWarnings.some(w=>w.row===ri+2&&w.col===h);
+          return `<td class="${errCell?'cell-err':warnCell?'cell-warn':''}">${esc(r[h]||'')}</td>`;
+        }).join('')}</tr>`;
+      }).join('')}</tbody></table></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" ${errCount>0?'disabled title="Perbaiki error terlebih dahulu"':''} onclick="gotoStep(2)">Lanjut →</button>
+      <button class="btn" onclick="document.getElementById('file-input').click()">Upload ulang</button>
+    </div>
+  </div>`;
+  el.innerHTML = html;
+}
+
+function showUploadErr(msg) {
+  document.getElementById('step1-result').innerHTML =
+    `<div class="err-panel error"><div class="err-panel-title">🚫 Gagal membaca file</div>${msg}</div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// STEP 2 — BS / P&L
+// ═══════════════════════════════════════════════════════════
+const stmtDesc = {
+  BS: { text: 'Balance Sheet — Akun neraca: aset, liabilitas, atau ekuitas. Sampling umumnya fokus pada Existence dan Valuation.', cls: 'success' },
+  PL: { text: 'Profit & Loss — Akun laba rugi: pendapatan atau beban. Sampling umumnya fokus pada Occurrence dan Completeness.', cls: 'success' }
+};
+function setStmt(v) {
+  S.stmt = v;
+  document.getElementById('seg-bs').classList.toggle('on', v === 'BS');
+  document.getElementById('seg-pl').classList.toggle('on', v === 'PL');
+  renderStep2();
+}
+function renderStep2() {
+  const d = stmtDesc[S.stmt];
+  document.getElementById('stmt-desc').className = `err-panel ${d.cls}`;
+  document.getElementById('stmt-desc').innerHTML = `<div class="err-panel-title">${S.stmt === 'BS' ? '🏦' : '📊'} ${S.stmt}</div>${d.text}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// STEP 3 — AKUN
+// ═══════════════════════════════════════════════════════════
+const accountSuggestions = {
+  BS: ['Kas & Setara Kas', 'Piutang Usaha', 'Persediaan', 'Aset Tetap', 'Utang Usaha', 'Utang Bank', 'Modal Saham', 'Investasi'],
+  PL: ['Pendapatan Penjualan', 'Beban Pokok Penjualan', 'Beban Gaji', 'Beban Operasional', 'Pendapatan Lain-lain', 'Beban Bunga', 'Beban Depresiasi']
+};
+function renderStep3() {
+  updateAccountSuggestions();
+}
+function updateAccountSuggestions() {
+  const q = (document.getElementById('account-name').value || '').toLowerCase();
+  const suggs = accountSuggestions[S.stmt].filter(s => !q || s.toLowerCase().includes(q));
+  document.getElementById('account-suggestions').innerHTML = suggs.map(s =>
+    `<button class="badge badge-navy" style="cursor:pointer;padding:5px 10px;font-size:12px" onclick="document.getElementById('account-name').value='${s}'">${s}</button>`
+  ).join('');
+}
+function validateStep3() {
+  const v = document.getElementById('account-name').value.trim();
+  if (!v) { document.getElementById('account-name').classList.add('err'); alert('Masukkan nama akun terlebih dahulu.'); return; }
+  S.accountName = v;
+  S.accountCode = document.getElementById('account-code').value.trim();
+  gotoStep(4);
+}
+
+// ═══════════════════════════════════════════════════════════
+// STEP 4 — ASERSI
+// ═══════════════════════════════════════════════════════════
+const asersiDef = [
+  { id: 'existence',     label: 'Existence / Occurrence', desc: 'Aset/transaksi yang dicatat benar-benar ada atau terjadi', icon: '✓', relevantFor: ['BS','PL'] },
+  { id: 'completeness',  label: 'Completeness',           desc: 'Semua aset/transaksi yang seharusnya dicatat telah dicatat', icon: '◉', relevantFor: ['BS','PL'] },
+  { id: 'valuation',     label: 'Valuation & Allocation', desc: 'Aset/transaksi dicatat pada jumlah yang tepat', icon: '₿', relevantFor: ['BS','PL'] },
+  { id: 'cutoff',        label: 'Cut-off',                desc: 'Transaksi dicatat di periode yang benar', icon: '✂', relevantFor: ['BS','PL'] },
+  { id: 'rights',        label: 'Rights & Obligations',   desc: 'Entitas memiliki hak atas aset dan kewajiban atas liabilitas', icon: '⚖', relevantFor: ['BS'] },
+  { id: 'presentation',  label: 'Presentation & Disclosure', desc: 'Penyajian dan pengungkapan sesuai standar', icon: '📋', relevantFor: ['BS','PL'] },
+];
+const asersiImpact = {
+  existence:    { dir: 'overstatement', tech: 'MUS / Random dari populasi', conf: 'Tinggi' },
+  completeness: { dir: 'understatement', tech: 'Systematic dari sumber eksternal', conf: 'Tinggi' },
+  valuation:    { dir: 'overstatement & understatement', tech: 'Stratified / MUS', conf: 'Sedang–Tinggi' },
+  cutoff:       { dir: 'keduanya', tech: 'Systematic di sekitar tanggal neraca', conf: 'Sedang' },
+  rights:       { dir: 'overstatement', tech: 'Judgmental / Random', conf: 'Sedang' },
+  presentation: { dir: 'keduanya', tech: 'Judgmental', conf: 'Rendah–Sedang' },
+};
+
+function renderStep4() {
+  const grid = document.getElementById('asersi-grid');
+  grid.innerHTML = asersiDef.map(a => `
+    <label class="check-card ${S.asersi.includes(a.id)?'selected':''}" for="asersi-${a.id}">
+      <input type="checkbox" id="asersi-${a.id}" ${S.asersi.includes(a.id)?'checked':''}
+        onchange="toggleAsersi('${a.id}',this.checked)">
+      <div class="check-card-body">
+        <div class="check-title">${a.icon} ${a.label}</div>
+        <div class="check-desc">${a.desc}</div>
+      </div>
+    </label>`).join('');
+  updateAsersiImpact();
+}
+function toggleAsersi(id, checked) {
+  if (checked) { if (!S.asersi.includes(id)) S.asersi.push(id); }
+  else S.asersi = S.asersi.filter(a => a !== id);
+  document.querySelector(`label[for="asersi-${id}"]`).classList.toggle('selected', checked);
+  updateAsersiImpact();
+}
+function updateAsersiImpact() {
+  const el = document.getElementById('asersi-impact');
+  if (S.asersi.length === 0) { el.style.display = 'none'; return; }
+  const impacts = S.asersi.map(id => asersiImpact[id]).filter(Boolean);
+  el.style.display = 'block';
+  el.className = 'err-panel success';
+  el.innerHTML = `<div class="err-panel-title">💡 Implikasi asersi terpilih</div>
+    <div style="display:grid;gap:6px">
+      ${impacts.map((imp, i) => `<div style="font-size:12px;padding:6px 8px;background:rgba(255,255,255,.6);border-radius:4px">
+        <strong>${asersiDef[S.asersi.indexOf(S.asersi[i])]?.label || ''}</strong>: 
+        Arah risiko: ${imp.dir} · Teknik disarankan: ${imp.tech}
+      </div>`).join('')}
+    </div>`;
+}
+function validateStep4() {
+  if (S.asersi.length === 0) { alert('Pilih minimal satu asersi.'); return; }
+  gotoStep(5);
+}
+
+// ═══════════════════════════════════════════════════════════
+// STEP 5 — CRA
+// ═══════════════════════════════════════════════════════════
+const riskLabel = ['', 'Rendah', 'Sedang', 'Tinggi'];
+const irDesc = ['','Tidak ada faktor inheren signifikan. Industri stabil, transaksi rutin.',
+  'Ada beberapa faktor inheren: kompleksitas sedang, estimasi manajemen terbatas.',
+  'Risiko inheren tinggi: transaksi kompleks, estimasi signifikan, industri volatile.'];
+const crDesc = ['','Kontrol internal kuat, TOC menunjukkan tidak ada deviasi signifikan.',
+  'Kontrol internal memadai namun belum diuji, atau ada beberapa deviasi minor.',
+  'Kontrol internal lemah, TOC gagal atau tidak dilakukan — risiko tinggi.'];
+const detectionRisk = [[],[],['','-','Tinggi','Sedang'],['','Tinggi','Sedang','Rendah'],['','Sedang','Rendah','Sangat Rendah']];
+
+function updateCRA() {
+  S.ir = +document.getElementById('ir-slider').value;
+  S.cr = +document.getElementById('cr-slider').value;
+  document.getElementById('ir-val').textContent = riskLabel[S.ir];
+  document.getElementById('cr-val').textContent = riskLabel[S.cr];
+  document.getElementById('ir-desc').textContent = irDesc[S.ir];
+  document.getElementById('cr-desc').textContent = crDesc[S.cr];
+  updateSliderFill('ir-slider', S.ir);
+  updateSliderFill('cr-slider', S.cr);
+  const dr = (['','Sangat Rendah','Rendah','Sedang','Tinggi'])[{11:4,12:3,13:2,21:3,22:2,23:1,31:2,32:1,33:1}[S.ir*10+S.cr]||2];
+  const sampleFactor = {11:0.7,12:0.85,13:1.0,21:0.85,22:1.0,23:1.3,31:1.0,32:1.3,33:1.6}[S.ir*10+S.cr]||1;
+  S.craFactor = sampleFactor;
+  const drColor = dr==='Tinggi'?'badge-green':dr==='Sedang'?'badge-navy':dr==='Rendah'?'badge-amber':'badge-red';
+  document.getElementById('cra-result').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div class="metric"><div class="metric-label">Inherent Risk</div><div class="metric-value" style="font-size:16px">${riskLabel[S.ir]}</div></div>
+      <div class="metric"><div class="metric-label">Control Risk</div><div class="metric-value" style="font-size:16px">${riskLabel[S.cr]}</div></div>
+      <div class="metric"><div class="metric-label">Detection Risk</div><div class="metric-value" style="font-size:16px">${dr}</div></div>
+    </div>
+    <div style="margin-top:12px;padding:10px 12px;background:var(--offwhite);border-radius:var(--r-sm);font-size:12px;color:var(--text2)">
+      DR ${dr} → faktor penyesuaian sampel: <strong>×${sampleFactor.toFixed(2)}</strong>. 
+      ${dr==='Sangat Rendah'?'Sampel TOD diperbesar secara signifikan untuk mengkompensasi risiko audit yang tinggi.':
+        dr==='Rendah'?'Sampel diperbesar untuk mengkompensasi control risk dan inherent risk yang tinggi.':
+        dr==='Sedang'?'Ukuran sampel moderat — seimbang antara efisiensi dan keyakinan.':
+        'Detection risk tinggi — boleh gunakan ukuran sampel lebih kecil karena IR dan CR rendah.'}
+    </div>`;
+}
+function updateSliderFill(id, val) {
+  const el = document.getElementById(id);
+  el.style.setProperty('--pct', ((val-1)/2*100)+'%');
+}
+
+// ═══════════════════════════════════════════════════════════
+// STEP 6 — POPULASI & KOLOM
+// ═══════════════════════════════════════════════════════════
+function renderStep6() {
+  // populate selects
+  ['col-unit','col-monetary','key-col-filter'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const prev = el.value;
+    el.innerHTML = (id==='key-col-filter'?'<option value="">— Tidak ada —</option>':'') +
+      S.headers.map(h=>`<option value="${esc(h)}" ${prev===h?'selected':''}>${esc(h)}</option>`).join('');
+    if (!prev && S.headers.length > 0) {
+      if (id==='col-unit') el.value = S.headers[0];
+      if (id==='col-monetary') el.value = S.headers[S.headers.length-1];
+    }
+  });
+  onColChange();
+  setSampleType(S.sampleType);
+}
+
+function onColChange() {
+  S.colUnit = document.getElementById('col-unit').value;
+  S.colMonetary = document.getElementById('col-monetary').value;
+  const vals = S.rawData.map(r => parseNum(r[S.colMonetary])).filter(v => v !== null);
+  const total = vals.reduce((a,b)=>a+b,0);
+  const avg = vals.length ? total/vals.length : 0;
+  const nonNumeric = S.rawData.filter(r => parseNum(r[S.colMonetary]) === null).length;
+  const zeros = vals.filter(v=>v===0).length;
+  const negs = vals.filter(v=>v<0).length;
+  document.getElementById('pop-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">Total populasi</div><div class="metric-value" style="font-size:14px">${fmtRp(total)}</div></div>
+    <div class="metric"><div class="metric-label">Jumlah item</div><div class="metric-value">${S.rawData.length.toLocaleString('id-ID')}</div></div>
+    <div class="metric"><div class="metric-label">Rata-rata</div><div class="metric-value" style="font-size:14px">${fmtRp(avg)}</div></div>
+    <div class="metric"><div class="metric-label">Max</div><div class="metric-value" style="font-size:14px">${fmtRp(Math.max(...vals,0))}</div></div>
+  `;
+  S.popTotal = total; S.popCount = S.rawData.length;
+  let errs = [];
+  if (nonNumeric > 0) errs.push(`<div class="err-panel warning"><div class="err-panel-title">⚠ ${nonNumeric} nilai di kolom "${S.colMonetary}" tidak bisa dibaca sebagai angka</div></div>`);
+  if (negs > 0) errs.push(`<div class="err-panel error"><div class="err-panel-title">🚫 ${negs} nilai negatif di kolom "${S.colMonetary}"</div></div>`);
+  if (zeros > 0) errs.push(`<div class="err-panel warning"><div class="err-panel-title">⚠ ${zeros} nilai nol (0) di kolom "${S.colMonetary}"</div></div>`);
+  document.getElementById('pop-errors').innerHTML = errs.join('');
+  document.getElementById('col-unit').onchange = onColChange;
+  document.getElementById('col-monetary').onchange = onColChange;
+  updateExpMiss();
+  updateKeyItems();
+  calcSampleSize();
+}
+
+function setSampleType(t) {
+  S.sampleType = t;
+  document.getElementById('seg-quanti').classList.toggle('on', t==='quanti');
+  document.getElementById('seg-quali').classList.toggle('on', t==='quali');
+  const d = t==='quanti'
+    ? 'Kuantitatif: ukuran sampel dihitung secara statistik. Hasil dapat digeneralisasi ke populasi dengan tingkat kepercayaan tertentu.'
+    : 'Kualitatif (judgmental): auditor menentukan sampel berdasarkan pertimbangan profesional. Tidak dapat digeneralisasi secara statistik — digunakan untuk area risiko spesifik.';
+  document.getElementById('sample-type-desc').className = 'err-panel success';
+  document.getElementById('sample-type-desc').innerHTML = `<div class="err-panel-title">${t==='quanti'?'📐 Kuantitatif':'🧠 Kualitatif'}</div>${d}`;
+}
+
+function updateExpMiss() {
+  S.expMiss = parseFloat(document.getElementById('exp-miss').value)||0;
+  S.tolMiss = parseFloat(document.getElementById('tol-miss').value)||0;
+  const el = document.getElementById('exp-miss-result');
+  if (S.tolMiss > 0 && S.expMiss >= S.tolMiss) {
+    el.innerHTML = `<div class="err-panel error"><div class="err-panel-title">🚫 Expected misstatement tidak boleh ≥ tolerable misstatement</div>Expected: ${fmtRp(S.expMiss)} ≥ Tolerable: ${fmtRp(S.tolMiss)}</div>`;
+  } else if (S.tolMiss > 0) {
+    const ratio = (S.expMiss/S.tolMiss*100).toFixed(0);
+    el.innerHTML = `<div class="err-panel success" style="margin-bottom:0">Rasio expected/tolerable: <strong>${ratio}%</strong> — ${ratio<30?'konservatif, sampel lebih kecil':ratio<70?'moderat':'tinggi, sampel akan diperbesar'}</div>`;
+  } else el.innerHTML = '';
+}
+
+function validateStep6() {
+  if (S.expMiss >= S.tolMiss && S.tolMiss > 0) { alert('Expected misstatement harus lebih kecil dari tolerable misstatement.'); return; }
+  gotoStep(7);
+}
+
+// ═══════════════════════════════════════════════════════════
+// STEP 7 — SAMPLING SETUP
+// ═══════════════════════════════════════════════════════════
+const techniques = [
+  { id:'mus',        label:'Monetary Unit Sampling (MUS)', desc:'Item bernilai besar lebih mungkin terpilih. Ideal untuk Existence/Overstatement.', icon:'💰' },
+  { id:'random',     label:'Simple Random Sampling',       desc:'Setiap item memiliki peluang sama. Cocok untuk populasi homogen.', icon:'🎲' },
+  { id:'systematic', label:'Systematic (Interval)',        desc:'Pilih setiap item ke-N dari daftar. Efisien dan mudah diterapkan.', icon:'📏' },
+  { id:'stratified', label:'Stratified Sampling',          desc:'Bagi populasi ke strata nilai/risiko lalu ambil sampel per strata.', icon:'📊' },
+  { id:'judgmental', label:'Judgmental / Purposive',       desc:'Pilih berdasarkan pertimbangan profesional. Non-statistik.', icon:'🧠' },
+];
+const techDesc = {
+  mus:       { cls:'success', text:'MUS: cocok untuk asersi Existence. Sampling interval = Tolerable Misstatement ÷ z. Item > interval diuji 100% (key item otomatis).' },
+  random:    { cls:'success', text:'Random: semua item bisa terpilih. Cocok jika populasi relatif homogen dan Completeness adalah asersi utama.' },
+  systematic:{ cls:'success', text:'Systematic: pilih random start lalu tambahkan interval. Efisien untuk populasi besar. Hati-hati jika ada pola periodik.' },
+  stratified:{ cls:'success', text:'Stratified: pisahkan strata nilai tinggi/sedang/rendah. Lebih presisi untuk populasi heterogen. Key items masuk strata tertinggi.' },
+  judgmental:{ cls:'warning', text:'Judgmental: tidak bisa digeneralisasi secara statistik. Gunakan hanya jika sampel kualitatif dipilih atau sebagai suplemen.' },
+};
+
+function renderStep7() {
+  document.getElementById('technique-grid').innerHTML = techniques.map(t => `
+    <label class="check-card ${S.technique===t.id?'selected':''}" for="tech-${t.id}" style="cursor:pointer">
+      <input type="radio" id="tech-${t.id}" name="technique" value="${t.id}" ${S.technique===t.id?'checked':''}
+        onchange="setTechnique('${t.id}')">
+      <div class="check-card-body">
+        <div class="check-title">${t.icon} ${t.label}</div>
+        <div class="check-desc">${t.desc}</div>
+      </div>
+    </label>`).join('');
+  updateKeyItems();
+  calcSampleSize();
+}
+
+function setTechnique(id) {
+  S.technique = id;
+  document.querySelectorAll('.check-card').forEach(c => c.classList.remove('selected'));
+  document.querySelector(`label[for="tech-${id}"]`)?.classList.add('selected');
+  const d = techDesc[id];
+  const el = document.getElementById('technique-desc');
+  el.style.display = 'block';
+  el.className = `err-panel ${d.cls}`;
+  el.innerHTML = `<div class="err-panel-title">Teknik terpilih: ${techniques.find(t=>t.id===id)?.label}</div>${d.text}`;
+  calcSampleSize();
+}
+
+function updateKeyItems() {
+  S.keyThreshold = parseFloat(document.getElementById('key-threshold')?.value)||0;
+  if (!S.colMonetary || !S.rawData.length) return;
+  S.keyItems = S.rawData.filter(r => {
+    const v = parseNum(r[S.colMonetary]);
+    return v !== null && v >= S.keyThreshold && S.keyThreshold > 0;
+  });
+  const keyVal = S.keyItems.reduce((a,r)=>a+(parseNum(r[S.colMonetary])||0),0);
+  const el = document.getElementById('key-item-result');
+  if (!el) return;
+  el.innerHTML = S.keyThreshold > 0
+    ? `<div class="err-panel ${S.keyItems.length>0?'success':'warning'}">
+        <div class="err-panel-title">${S.keyItems.length > 0 ? '⭐' : '⚠'} ${S.keyItems.length} key item ditemukan</div>
+        ${S.keyItems.length>0?`Nilai total key items: <strong>${fmtRp(keyVal)}</strong> (${(keyVal/(S.popTotal||1)*100).toFixed(1)}% dari populasi). Item ini akan diuji 100% dan dipisah dari sampling statistik.`:'Tidak ada item yang melebihi batas nilai key item.'}
+       </div>`
+    : `<div style="font-size:12px;color:var(--text3)">Isi batas nilai di atas untuk mengidentifikasi key items secara otomatis.</div>`;
+  calcSampleSize();
+}
+
+function calcSampleSize() {
+  S.confLevel = parseFloat(document.getElementById('conf-level')?.value)||1.96;
+  const z = S.confLevel;
+  const N = S.popCount - S.keyItems.length;
+  const total = S.popTotal - S.keyItems.reduce((a,r)=>a+(parseNum(r[S.colMonetary])||0),0);
+  const tm = S.tolMiss || (S.popTotal * 0.02);
+  const em = S.expMiss || 0;
+  const cra = S.craFactor || 1.0;
+  let n = 30;
+  if (S.sampleType === 'quanti' && S.technique) {
+    if (S.technique === 'mus') {
+      const interval = Math.round(tm / z);
+      n = Math.max(Math.ceil((total / interval) * cra * (1 + em/tm)), 10);
+    } else {
+      const p = Math.min(em/total, 0.49) || 0.05;
+      const n0 = (z*z*p*(1-p)) / ((tm/total)*(tm/total));
+      n = Math.max(Math.ceil((n0/(1+(n0-1)/Math.max(N,1)))*cra), 10);
+    }
+  } else if (S.sampleType === 'quali') {
+    n = Math.max(Math.round(20 * cra), 5);
+  }
+  S.calcN = Math.min(n, N);
+  const el = document.getElementById('size-metrics');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="metric"><div class="metric-label">Key items (100%)</div><div class="metric-value">${S.keyItems.length}</div></div>
+    <div class="metric"><div class="metric-label">Populasi sampling</div><div class="metric-value">${N.toLocaleString('id-ID')}</div></div>
+    <div class="metric"><div class="metric-label">Sampel statistik</div><div class="metric-value" style="color:var(--navy)">${S.calcN.toLocaleString('id-ID')}</div></div>
+    <div class="metric"><div class="metric-label">Total sampel</div><div class="metric-value">${(S.calcN+S.keyItems.length).toLocaleString('id-ID')}</div></div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════
+// SAMPLE GENERATION
+// ═══════════════════════════════════════════════════════════
+function mulberry32(s) {
+  return () => { s|=0; s=s+0x6D2B79F5|0; let t=Math.imul(s^s>>>15,1|s); t=t+Math.imul(t^t>>>7,61|t)^t; return((t^t>>>14)>>>0)/4294967296; };
+}
+
+function generateSample() {
+  if (!S.technique) { alert('Pilih teknik sampling terlebih dahulu.'); return; }
+  const sv = document.getElementById('rng-seed').value;
+  S.seed = sv ? +sv : null;
+  const rng = S.seed !== null ? mulberry32(S.seed) : Math.random.bind(Math);
+  const keyIds = new Set(S.keyItems.map(r => r[S.colUnit]));
+  const pool = S.rawData.filter(r => !keyIds.has(r[S.colUnit]));
+  let sample = [];
+  const n = Math.min(S.calcN, pool.length);
+
+  if (S.technique === 'mus') {
+    const nonKeyTotal = pool.reduce((a,r)=>a+(parseNum(r[S.colMonetary])||0),0);
+    const tm = S.tolMiss || nonKeyTotal*0.02;
+    const z = S.confLevel;
+    const interval = Math.max(Math.round(tm/z), 1);
+    const start = Math.floor(rng()*interval)+1;
+    let cumulative = 0;
+    const targets = new Set();
+    for (let i=1; cumulative < nonKeyTotal; i++) targets.add(start+(i-1)*interval);
+    let cum2 = 0;
+    const sorted = [...pool].sort((a,b)=>(parseNum(b[S.colMonetary])||0)-(parseNum(a[S.colMonetary])||0));
+    sorted.forEach(row => {
+      const v = parseNum(row[S.colMonetary])||0;
+      const prev = cum2;
+      cum2 += v;
+      for (const t of targets) { if (t > prev && t <= cum2) { sample.push(row); break; } }
+    });
+    if (sample.length < n) {
+      const missing = n - sample.length;
+      const extra = pool.filter(r=>!sample.includes(r));
+      shuffle(extra, rng);
+      sample = [...sample, ...extra.slice(0, missing)];
+    }
+  } else if (S.technique === 'random') {
+    const shuffled = [...pool]; shuffle(shuffled, rng);
+    sample = shuffled.slice(0, n);
+  } else if (S.technique === 'systematic') {
+    const interval = Math.max(Math.floor(pool.length/n), 1);
+    const start = Math.floor(rng()*interval);
+    for (let i=0; sample.length<n && start+i*interval<pool.length; i++) sample.push(pool[start+i*interval]);
+  } else if (S.technique === 'stratified') {
+    const vals = pool.map(r=>parseNum(r[S.colMonetary])||0);
+    const max = Math.max(...vals); const p33=max*0.33; const p66=max*0.66;
+    const strata = [pool.filter(r=>(parseNum(r[S.colMonetary])||0)>p66),
+                    pool.filter(r=>{const v=parseNum(r[S.colMonetary])||0;return v>p33&&v<=p66;}),
+                    pool.filter(r=>(parseNum(r[S.colMonetary])||0)<=p33)];
+    const allocs = [Math.ceil(n*0.5), Math.ceil(n*0.3), Math.floor(n*0.2)];
+    strata.forEach((s,i)=>{ const sh=[...s];shuffle(sh,rng);sample=[...sample,...sh.slice(0,allocs[i])];});
+  } else { // judgmental
+    const shuffled = [...pool]; shuffle(shuffled, rng);
+    sample = shuffled.slice(0, n);
+  }
+
+  S.sampleItems = [...S.keyItems.map(r=>({...r,_type:'Key Item'})), ...sample.map(r=>({...r,_type:'Sampel'}))];
+  gotoStep(8);
+  renderOutput();
+}
+
+function shuffle(arr, rng) {
+  for (let i=arr.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
+}
+
+// ═══════════════════════════════════════════════════════════
+// STEP 8 — OUTPUT
+// ═══════════════════════════════════════════════════════════
+function renderOutput() {
+  const total = S.sampleItems.reduce((a,r)=>a+(parseNum(r[S.colMonetary])||0),0);
+  const keyTotal = S.keyItems.reduce((a,r)=>a+(parseNum(r[S.colMonetary])||0),0);
+  const sampleTotal = total - keyTotal;
+  const pctPop = S.popTotal ? (total/S.popTotal*100).toFixed(1) : '—';
+  const techName = techniques.find(t=>t.id===S.technique)?.label || S.technique;
+  const confPct = S.confLevel>=2.576?'99%':S.confLevel>=1.96?'95%':'90%';
+
+  document.getElementById('out-subtitle').innerHTML = 
+    `Akun: <strong>${S.accountName}</strong> &nbsp;·&nbsp; ${S.stmt} &nbsp;·&nbsp; Teknik: ${techName} &nbsp;·&nbsp; Kepercayaan: ${confPct}`;
+
+  document.getElementById('out-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">Total sampel</div><div class="metric-value">${S.sampleItems.length}</div><div class="metric-sub">item</div></div>
+    <div class="metric"><div class="metric-label">Key items</div><div class="metric-value">${S.keyItems.length}</div><div class="metric-sub">diuji 100%</div></div>
+    <div class="metric"><div class="metric-label">Sampel statistik</div><div class="metric-value">${S.sampleItems.length-S.keyItems.length}</div><div class="metric-sub">item</div></div>
+    <div class="metric"><div class="metric-label">Nilai sampel</div><div class="metric-value" style="font-size:14px">${fmtRp(total)}</div><div class="metric-sub">${pctPop}% populasi</div></div>
+  `;
+
+  document.getElementById('out-summary').className = 'err-panel success';
+  document.getElementById('out-summary').innerHTML = `
+    <div class="err-panel-title">✅ Sampel berhasil digenerate</div>
+    Asersi: ${S.asersi.map(a=>asersiDef.find(d=>d.id===a)?.label).join(', ')} &nbsp;·&nbsp;
+    IR: ${riskLabel[S.ir]} &nbsp;·&nbsp; CR: ${riskLabel[S.cr]} &nbsp;·&nbsp;
+    Tolerable misstatement: ${S.tolMiss?fmtRp(S.tolMiss):'tidak diset'}
+    ${S.seed!==null?` &nbsp;·&nbsp; Seed: ${S.seed}`:''}
+  `;
+
+  // Table
+  const cols = ['#', '_type', S.colUnit, S.colMonetary, ...S.headers.filter(h=>h!==S.colUnit&&h!==S.colMonetary)];
+  const visibleCols = cols.slice(0,8);
+  const table = document.getElementById('out-table');
+  table.innerHTML = `<thead><tr>${visibleCols.map(c=>c==='#'?'<th>#</th>':`<th>${esc(c==='_type'?'Tipe':c)}</th>`).join('')}</tr></thead>
+    <tbody>${S.sampleItems.map((r,i)=>{
+      const isKey = r._type==='Key Item';
+      return `<tr class="${isKey?'key-row':''}">${visibleCols.map(c=>{
+        if(c==='#') return `<td style="color:var(--text3);font-size:11px">${i+1}</td>`;
+        if(c==='_type') return `<td><span class="badge ${isKey?'badge-amber':'badge-navy'}">${r._type}</span></td>`;
+        const v = r[c]||'';
+        const n = parseNum(v);
+        return `<td>${n!==null&&c===S.colMonetary?fmtRp(n):esc(v)}</td>`;
+      }).join('')}</tr>`;
+    }).join('')}</tbody>`;
+}
+
+function exportOutput(mode) {
+  if (!S.sampleItems.length) return;
+  const cols = mode==='all' ? ['_type', ...S.headers] : ['Tipe', S.colUnit, S.colMonetary];
+  const headers = mode==='all' ? ['Tipe', ...S.headers] : cols;
+  const rows = S.sampleItems.map(r => (mode==='all'?['_type',...S.headers]:['_type',S.colUnit,S.colMonetary])
+    .map(c=>{ const v=c==='_type'?r._type:(r[c]||''); return `"${String(v).replace(/"/g,'""')}"`; }).join(','));
+  const csv = [headers.join(','), ...rows].join('\n');
+  dlFile(csv, `sampel-audit-${S.accountName.replace(/\s+/g,'-')}-${new Date().toISOString().slice(0,10)}.csv`, 'text/csv');
+}
+
+// ═══════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════
+function fmtRp(v) { return 'Rp ' + Math.round(v).toLocaleString('id-ID'); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function dlFile(content, name, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content],{type}));
+  a.download = name; a.click();
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+updateCRA();
+renderStep2();
+</script>
+</body>
+</html>
